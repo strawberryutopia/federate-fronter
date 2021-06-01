@@ -1,4 +1,8 @@
-# Proof of Concept Standalone Fronter Federation
+# System Fronter Federation
+
+Re-make of the legacy app, which relied on legacy Slack Tokens (which are no longer available)
+
+
 
 See app in Slack App Directory:
 
