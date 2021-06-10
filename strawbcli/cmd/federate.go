@@ -1,61 +1,66 @@
-package main
+package cmd
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
+
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/slack-go/slack"
 )
 
-type Fronter struct {
-	Members []struct {
-		Name        string `json:"name"`
-		DisplayName string `json:"display_name"`
-		Pronouns    string `json:"pronouns"`
-		AvatarURL   string `json:"avatar_url"`
-	} `json:"members"`
+// federateCmd represents the federate command
+var federateCmd = &cobra.Command{
+	Use:   "federate",
+	Short: "Federates fronter details",
+	Long:  `Takes current fronter from LMHD API (or flag) and updates various sources`,
+	Run: func(cmd *cobra.Command, args []string) {
+
+		nameFlag := cmd.PersistentFlags().Lookup("name")
+		avatarFlag := cmd.PersistentFlags().Lookup("avatar")
+
+		var fronter Fronter
+		var err error
+
+		if !nameFlag.Changed || !avatarFlag.Changed {
+			fronter, err = GetFronter()
+			if err != nil {
+				log.Fatalf("%s", err)
+			}
+
+			log.Infof("Fronter: %s\n", fronter.Members[0])
+		} else {
+			log.Infof("Custom Fronter: %v, %v", nameFlag.Value, avatarFlag.Value)
+
+			fronter = Fronter{
+				Members: []Member{
+					{
+						Name:      nameFlag.Value.String(),
+						AvatarURL: avatarFlag.Value.String(),
+					},
+				},
+			}
+		}
+
+		client := slack.New(os.ExpandEnv("${SLACK_API_TOKEN}"))
+		UpdateProfile(client, fronter.Members[0].Name)
+		UpdateAvatar(client, fronter.Members[0].AvatarURL)
+
+		PrintProfile(client)
+	},
 }
 
-func main() {
+func init() {
+	rootCmd.AddCommand(federateCmd)
 
-	client := slack.New(os.ExpandEnv("${SLACK_API_TOKEN}"))
-
-	fronter, _ := GetFronter()
-	fmt.Printf("Fronter: %s\n", fronter.Members[0])
-
-	UpdateProfile(client, fronter.Members[0].Name)
-	UpdateAvatar(client, fronter.Members[0].AvatarURL)
-
-	PrintProfile(client)
-}
-
-func GetFronter() (Fronter, error) {
-	resp, err := http.Get("https://api.lmhd.me/v1/front.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	// Read body
-	b, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var fronter Fronter
-	err = json.Unmarshal(b, &fronter)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	return fronter, nil
+	federateCmd.PersistentFlags().String("name", "", "Override name")
+	federateCmd.PersistentFlags().String("avatar", "", "Override avatar")
 }
 
 func PrintProfile(client *slack.Client) {
@@ -67,7 +72,7 @@ func PrintProfile(client *slack.Client) {
 	}
 
 	profileJSON, _ := json.MarshalIndent(profile, "", "\t")
-	fmt.Printf("Profile: %s\n", profileJSON)
+	log.Infof("Profile: %s\n", profileJSON)
 }
 
 func UpdateProfile(client *slack.Client, name string) {
