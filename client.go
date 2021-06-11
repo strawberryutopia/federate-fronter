@@ -1,6 +1,7 @@
 package federate
 
 import (
+	"fmt"
 	"sync"
 
 	vaultAPI "github.com/hashicorp/vault/api"
@@ -9,23 +10,33 @@ import (
 
 type Client struct {
 	Slack *Slack
-	Vault *vaultAPI.Client
+	//Vault *vaultAPI.Client
 
 	// TODO: Discord
 	// TODO: Other Things
 }
 
 func NewClient() (*Client, error) {
-	// Update Slack(s)
-	slacks, err := NewSlack()
+	// TODO: Vault auth, e.g. AWS or AppRole
+	vaultClient, err := vaultAPI.NewClient(
+		vaultAPI.DefaultConfig(),
+	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error creating Vault Client: %v", err)
+	}
+
+	// TODO: AppRole/AWS/Etc. Auth
+
+	// Update Slack(s)
+	slacks, err := NewSlack(vaultClient)
+	if err != nil {
+		return nil, fmt.Errorf("error creating Slack Clients: %v", err)
 	}
 
 	c := &Client{
 		Slack: slacks,
+		//Vault: vaultClient,
 	}
-
 	return c, nil
 }
 

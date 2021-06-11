@@ -15,7 +15,7 @@ var federateCmd = &cobra.Command{
 
 		client, err := federate.NewClient()
 		if err != nil {
-			log.Fatal(err.Error)
+			log.Fatal(err.Error())
 		}
 
 		nameFlag := cmd.PersistentFlags().Lookup("name")
@@ -24,7 +24,7 @@ var federateCmd = &cobra.Command{
 		if !nameFlag.Changed || !avatarFlag.Changed {
 			err = client.UpdateFromFront()
 			if err != nil {
-				log.Fatal(err.Error)
+				log.Fatal(err.Error())
 			}
 		} else {
 			log.Infof("Custom Fronter: %v, %v", nameFlag.Value, avatarFlag.Value)
@@ -34,7 +34,7 @@ var federateCmd = &cobra.Command{
 				avatarFlag.Value.String(),
 			)
 			if err != nil {
-				log.Fatal(err.Error)
+				log.Fatal(err.Error())
 			}
 		}
 	},

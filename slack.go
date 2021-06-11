@@ -1,10 +1,12 @@
 package federate
 
 import (
+	"fmt"
 	"os"
-	"strings"
 	"sync"
 
+	vaultAPI "github.com/hashicorp/vault/api"
+	"github.com/mitchellh/mapstructure"
 	log "github.com/sirupsen/logrus"
 
 	_ "github.com/joho/godotenv/autoload"
@@ -12,17 +14,35 @@ import (
 
 type Slack struct {
 	Workspaces map[string]*SlackWorkspace
+	Members    SlackMembers
 }
 
-func NewSlack() (*Slack, error) {
+func NewSlack(v *vaultAPI.Client) (*Slack, error) {
 	ws := make(map[string]*SlackWorkspace)
 	s := &Slack{
 		Workspaces: ws,
 	}
 
-	names := strings.Split(os.ExpandEnv("${SLACK_WORKSPACES}"), ",")
-	tokens := strings.Split(os.ExpandEnv("${SLACK_API_TOKENS}"), ",")
-	userIDs := strings.Split(os.ExpandEnv("${SLACK_USER_IDS}"), ",")
+	// TODO: Get slack members
+	_, err := getSlackMembers(v)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Slack Members: %s", err)
+	}
+
+	tokens, err := getSlackTokens(v)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Slack Tokens: %s", err)
+	}
+
+	var names []string
+	for k := range tokens {
+		names = append(names, k)
+	}
+
+	userIDs, err := getSlackUserIDs(v)
+	if err != nil {
+		return nil, fmt.Errorf("error getting Slack User IDs: %s", err)
+	}
 
 	// Assume each of the above has the same name
 	// It'll throw a runtime error otherwise
@@ -30,23 +50,20 @@ func NewSlack() (*Slack, error) {
 
 		ws := NewSlackWorkspace(
 			names[i],
-			tokens[i],
-			userIDs[i],
+			tokens[names[i]],
+			userIDs[names[i]],
 		)
 
 		s.Workspaces[names[i]] = ws
 	}
-
-	// TODO: Read from Vault
-	// Tokens: map[string]string
-	// UIDs: map[string]string
-	// Members: map[string]complicated struct goes here
 
 	return s, nil
 }
 
 // Update takes a specific name and avatar, and updates each Slack workspace
 func (s Slack) Update(name, avatar string) error {
+	// TODO: Get name and avatar from Members
+
 	// Run each Slack API command concurrently
 	var wg sync.WaitGroup
 
@@ -79,4 +96,61 @@ func (s Slack) Update(name, avatar string) error {
 	log.Info("Slack.Update: Completed")
 
 	return nil
+}
+
+func getSlackTokens(v *vaultAPI.Client) (map[string]string, error) {
+	tokens := make(map[string]string)
+
+	path := os.ExpandEnv("${VAULT_SECRET_SLACK_TOKENS}")
+
+	log.Infof("Reading tokens from %v", path)
+	s, err := v.Logical().Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read from Vault: %v", err)
+	}
+
+	err = mapstructure.Decode(s.Data["data"], &tokens)
+	if err != nil {
+		return nil, fmt.Errorf("could decode secret from Vault: %v", err)
+	}
+
+	return tokens, nil
+}
+
+func getSlackMembers(v *vaultAPI.Client) (SlackMembers, error) {
+	members := make(SlackMembers)
+
+	path := os.ExpandEnv("${VAULT_SECRET_SLACK_MEMBERS}")
+
+	log.Infof("Reading members from %v", path)
+	s, err := v.Logical().Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read from Vault: %v", err)
+	}
+
+	err = mapstructure.Decode(s.Data["data"], &members)
+	if err != nil {
+		return nil, fmt.Errorf("could decode secret from Vault: %v", err)
+	}
+
+	return members, nil
+}
+
+func getSlackUserIDs(v *vaultAPI.Client) (map[string]string, error) {
+	userIDs := make(map[string]string)
+
+	path := os.ExpandEnv("${VAULT_SECRET_SLACK_USER_IDS}")
+
+	log.Infof("Reading User IDs from %v", path)
+	s, err := v.Logical().Read(path)
+	if err != nil {
+		return nil, fmt.Errorf("could not read from Vault: %v", err)
+	}
+
+	err = mapstructure.Decode(s.Data["data"], &userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("could decode secret from Vault: %v", err)
+	}
+
+	return userIDs, nil
 }
