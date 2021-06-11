@@ -13,8 +13,7 @@ var federateCmd = &cobra.Command{
 	Long:  `Takes current fronter from LMHD API (or flag) and updates various sources`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		// Update Slack(s)
-		slacks, err := federate.NewSlack()
+		client, err := federate.NewClient()
 		if err != nil {
 			log.Fatal(err.Error)
 		}
@@ -23,14 +22,14 @@ var federateCmd = &cobra.Command{
 		avatarFlag := cmd.PersistentFlags().Lookup("avatar")
 
 		if !nameFlag.Changed || !avatarFlag.Changed {
-			err = slacks.UpdateFromFront()
+			err = client.UpdateFromFront()
 			if err != nil {
 				log.Fatal(err.Error)
 			}
 		} else {
 			log.Infof("Custom Fronter: %v, %v", nameFlag.Value, avatarFlag.Value)
 
-			err := slacks.Update(
+			err := client.Update(
 				nameFlag.Value.String(),
 				avatarFlag.Value.String(),
 			)
