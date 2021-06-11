@@ -15,7 +15,7 @@ var fronterCmd = &cobra.Command{
 	Long:    `Reads from the LMHD API and gets the current fronter`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fronter, _ := federate.GetFronter()
-		log.Infof("Fronter: %s\n", fronter.Members[0])
+		log.Infof("Current Fronter: %s\n", fronter.Members[0].Name)
 	},
 }
 
