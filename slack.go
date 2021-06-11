@@ -45,8 +45,22 @@ func NewSlack() (*Slack, error) {
 	return s, nil
 }
 
+// UpdateFromFront gets the current Fronter from API, and runs Update
+func (s Slack) UpdateFromFront() error {
+	fronter, err := GetFronter()
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Current API Fronter: %v, %v", fronter.Members[0].Name, fronter.Members[0].AvatarURL)
+
+	return s.Update(fronter.Members[0].Name, fronter.Members[0].AvatarURL)
+}
+
+// Update takes a specific name and avatar, and updates each Slack workspace
 func (s Slack) Update(name, avatar string) error {
 
+	// Run each Slack API command concurrently
 	var wg sync.WaitGroup
 
 	// TODO: Pass back errors through channels

@@ -13,45 +13,30 @@ var federateCmd = &cobra.Command{
 	Long:  `Takes current fronter from LMHD API (or flag) and updates various sources`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		// Update Slack(s)
+		slacks, err := federate.NewSlack()
+		if err != nil {
+			log.Fatal(err.Error)
+		}
+
 		nameFlag := cmd.PersistentFlags().Lookup("name")
 		avatarFlag := cmd.PersistentFlags().Lookup("avatar")
 
-		var fronter federate.Fronter
-		var err error
-
 		if !nameFlag.Changed || !avatarFlag.Changed {
-			fronter, err = federate.GetFronter()
+			err = slacks.UpdateFromFront()
 			if err != nil {
-				log.Fatalf("%s", err)
+				log.Fatal(err.Error)
 			}
-
-			log.Infof("Current API Fronter: %v, %v", fronter.Members[0].Name, fronter.Members[0].AvatarURL)
 		} else {
 			log.Infof("Custom Fronter: %v, %v", nameFlag.Value, avatarFlag.Value)
 
-			fronter = federate.Fronter{
-				Members: []federate.Member{
-					{
-						Name:      nameFlag.Value.String(),
-						AvatarURL: avatarFlag.Value.String(),
-					},
-				},
+			err := slacks.Update(
+				nameFlag.Value.String(),
+				avatarFlag.Value.String(),
+			)
+			if err != nil {
+				log.Fatal(err.Error)
 			}
-		}
-
-		// Update Slack(s)
-		var slacks *federate.Slack
-		slacks, err = federate.NewSlack()
-		if err != nil {
-			log.Fatal(err.Error)
-		}
-
-		err = slacks.Update(
-			fronter.Members[0].Name,
-			fronter.Members[0].AvatarURL,
-		)
-		if err != nil {
-			log.Fatal(err.Error)
 		}
 	},
 }
