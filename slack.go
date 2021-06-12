@@ -24,10 +24,11 @@ func NewSlack(v *vaultAPI.Client) (*Slack, error) {
 	}
 
 	// TODO: Get slack members
-	_, err := getSlackMembers(v)
+	members, err := getSlackMembers(v)
 	if err != nil {
 		return nil, fmt.Errorf("error getting Slack Members: %s", err)
 	}
+	s.Members = members
 
 	tokens, err := getSlackTokens(v)
 	if err != nil {
@@ -61,8 +62,7 @@ func NewSlack(v *vaultAPI.Client) (*Slack, error) {
 }
 
 // Update takes a specific name and avatar, and updates each Slack workspace
-func (s Slack) Update(name, avatar string) error {
-	// TODO: Get name and avatar from Members
+func (s Slack) Update(fronter, avatar string) error {
 
 	// Run each Slack API command concurrently
 	var wg sync.WaitGroup
@@ -72,10 +72,20 @@ func (s Slack) Update(name, avatar string) error {
 	for _, ws := range s.Workspaces {
 		wg.Add(2)
 
+		// TODO: Get name and avatar from Members
+		// based on Slack workspace and fronter
+		// and fallback to name/avatar if appropriate
+
+		wsName := s.Members.GetName(fronter, ws.Name)
+		log.Debugf("%v Name: %v", ws.Name, wsName)
+
+		wsAvatar := s.Members.GetAvatar(fronter, ws.Name, avatar)
+		log.Debugf("%v Avatar: %v", ws.Name, wsAvatar)
+
 		go func(wg *sync.WaitGroup, ws *SlackWorkspace) {
 			defer wg.Done()
-			log.Infof("Updating Name in Slack Workspace: %v", ws.Name)
-			err := ws.UpdateProfile(name)
+			log.Infof("Updating Name in Slack Workspace %v: %v", ws.Name, wsName)
+			err := ws.UpdateProfile(wsName)
 			if err != nil {
 				log.Errorf("%v", err)
 			}
@@ -83,17 +93,17 @@ func (s Slack) Update(name, avatar string) error {
 
 		go func(wg *sync.WaitGroup, ws *SlackWorkspace) {
 			defer wg.Done()
-			log.Infof("Updating Avatar in Slack Workspace: %v", ws.Name)
-			err := ws.UpdateAvatar(avatar)
+			log.Infof("Updating Avatar in Slack Workspace %v: %v", ws.Name, wsAvatar)
+			err := ws.UpdateAvatar(wsAvatar)
 			if err != nil {
 				log.Errorf("%v", err)
 			}
 		}(&wg, ws)
 	}
 
-	log.Info("Slack.Update: Waiting for workers to finish")
+	log.Debugf("Slack.Update: Waiting for workers to finish")
 	wg.Wait()
-	log.Info("Slack.Update: Completed")
+	log.Debugf("Slack.Update: Completed")
 
 	return nil
 }
@@ -103,7 +113,7 @@ func getSlackTokens(v *vaultAPI.Client) (map[string]string, error) {
 
 	path := os.ExpandEnv("${VAULT_SECRET_SLACK_TOKENS}")
 
-	log.Infof("Reading tokens from %v", path)
+	log.Debugf("Reading tokens from %v", path)
 	s, err := v.Logical().Read(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not read from Vault: %v", err)
@@ -122,7 +132,7 @@ func getSlackMembers(v *vaultAPI.Client) (SlackMembers, error) {
 
 	path := os.ExpandEnv("${VAULT_SECRET_SLACK_MEMBERS}")
 
-	log.Infof("Reading members from %v", path)
+	log.Debugf("Reading members from %v", path)
 	s, err := v.Logical().Read(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not read from Vault: %v", err)
@@ -141,7 +151,7 @@ func getSlackUserIDs(v *vaultAPI.Client) (map[string]string, error) {
 
 	path := os.ExpandEnv("${VAULT_SECRET_SLACK_USER_IDS}")
 
-	log.Infof("Reading User IDs from %v", path)
+	log.Debugf("Reading User IDs from %v", path)
 	s, err := v.Logical().Read(path)
 	if err != nil {
 		return nil, fmt.Errorf("could not read from Vault: %v", err)

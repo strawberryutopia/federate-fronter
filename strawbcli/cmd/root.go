@@ -6,11 +6,15 @@ import (
 
 	"github.com/spf13/cobra"
 
+	log "github.com/sirupsen/logrus"
+
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var debug bool
+var jsonLogs bool
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -20,6 +24,15 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	// Run: func(cmd *cobra.Command, args []string) { },
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		if debug {
+			log.SetLevel(log.DebugLevel)
+		}
+
+		if jsonLogs {
+			log.SetFormatter(&log.JSONFormatter{})
+		}
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -31,11 +44,9 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.strawbcli.yaml)")
+	rootCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "Debug mode")
+	rootCmd.PersistentFlags().BoolVarP(&jsonLogs, "json", "j", false, "Log in json format")
 }
 
 // initConfig reads in config file and ENV variables if set.

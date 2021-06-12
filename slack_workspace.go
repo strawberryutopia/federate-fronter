@@ -2,10 +2,10 @@ package federate
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"os"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/slack-go/slack"
 )
 
@@ -37,16 +37,17 @@ func (w SlackWorkspace) UpdateProfile(name string) error {
 
 // TODO: This is currently unused, but could be used to check federation status
 // e.g. READ api.lmhd.me/v1/front/federate
-func (w SlackWorkspace) PrintProfile(userid string) error {
+func (w SlackWorkspace) PrintProfile() error {
+
 	profile, err := w.client.GetUserProfile(&slack.GetUserProfileParameters{
-		UserID: userid,
+		UserID: w.UserID,
 	})
 	if err != nil {
 		return err
 	}
 
 	profileJSON, _ := json.MarshalIndent(profile, "", "\t")
-	log.Debugf("Profile: %s\n", profileJSON)
+	fmt.Println(string(profileJSON))
 
 	return nil
 }

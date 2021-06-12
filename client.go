@@ -63,7 +63,7 @@ func (c Client) Update(name, avatar string) error {
 	go func(wg *sync.WaitGroup) {
 		defer wg.Done()
 
-		log.Infof("Updating Slack Workspaces")
+		log.Debugf("Updating Slack Workspaces")
 
 		err := c.Slack.Update(
 			name,
@@ -76,9 +76,9 @@ func (c Client) Update(name, avatar string) error {
 
 	// TODO: Discord etc.
 
-	log.Info("Client.Update: Waiting for workers to finish")
+	log.Debugf("Client.Update: Waiting for workers to finish")
 	wg.Wait()
-	log.Info("Client.Update: Completed")
+	log.Debugf("Client.Update: Completed")
 
 	return nil
 }
