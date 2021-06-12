@@ -1,8 +1,10 @@
 # TODO
 
-## Private Fronters
+## Integrate into api.lmhd.me
 
-e.g. when PK Front is cleared, should use a default name and avatar
+* Require an X.509 Cert from Vault, with certain parameters
+  * i.e. scope: federate:write
+* Support AppRole Auth
 
 
 ## Tests
@@ -15,8 +17,6 @@ There is a test script, but testing is still manual
 * Unclear if https://github.com/slack-go/slack supports setting custom fields
 
 
-## Integrate into api.lmhd.me
+## Other Integrations
 
-* Require an X.509 Cert from Vault, with certain parameters
-  * i.e. scope: federate:write
-* Support AppRole Auth
+* Discord Status
