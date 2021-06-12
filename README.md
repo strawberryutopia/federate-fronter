@@ -3,6 +3,7 @@
 Re-make of the legacy app, which relied on legacy Slack Tokens (which are no longer available)
 
 
+## Slack
 
 See app in Slack App Directory:
 
