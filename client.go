@@ -2,6 +2,7 @@ package federate
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	vaultAPI "github.com/hashicorp/vault/api"
@@ -10,33 +11,35 @@ import (
 
 type Client struct {
 	Slack *Slack
-	//Vault *vaultAPI.Client
+	Vault *vaultAPI.Client
 
 	// TODO: Discord
 	// TODO: Other Things
 }
 
 func NewClient() (*Client, error) {
-	// TODO: Vault auth, e.g. AWS or AppRole
+
+	c := &Client{}
+
 	vaultClient, err := vaultAPI.NewClient(
 		vaultAPI.DefaultConfig(),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Vault Client: %v", err)
 	}
-
-	// TODO: AppRole/AWS/Etc. Auth
+	c.Vault = vaultClient
+	err = c.VaultAuth()
+	if err != nil {
+		return nil, fmt.Errorf("error authenticating with Vault: %v", err)
+	}
 
 	// Update Slack(s)
 	slacks, err := NewSlack(vaultClient)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Slack Clients: %v", err)
 	}
+	c.Slack = slacks
 
-	c := &Client{
-		Slack: slacks,
-		//Vault: vaultClient,
-	}
 	return c, nil
 }
 
@@ -86,5 +89,42 @@ func (c Client) Update(name, avatar string) error {
 	wg.Wait()
 	log.Debugf("Client.Update: Completed")
 
+	return nil
+}
+
+func (c Client) VaultAuth() error {
+	if os.ExpandEnv("${VAULT_APPROLE_ROLE_ID}") != "" {
+
+		if os.ExpandEnv("${VAULT_APPROLE_SECRET_ID}") != "" {
+			log.Debugf("AppRole Auth with Secret ID")
+
+			token, err := c.Vault.Logical().Write("auth/approle/login", map[string]interface{}{
+				"role_id":   os.ExpandEnv("${VAULT_APPROLE_ROLE_ID}"),
+				"secret_id": os.ExpandEnv("${VAULT_APPROLE_SECRET_ID}"),
+			})
+			if err != nil {
+				return fmt.Errorf("error authenticating with AppRole: %v", err)
+			}
+
+			c.Vault.SetToken(token.Auth.ClientToken)
+
+			return nil
+		}
+
+		log.Debugf("AppRole Auth without Secret ID")
+
+		token, err := c.Vault.Logical().Write("auth/approle/login", map[string]interface{}{
+			"role_id": os.ExpandEnv("${VAULT_APPROLE_ROLE_ID}"),
+		})
+		if err != nil {
+			return fmt.Errorf("error authenticating with AppRole: %v", err)
+		}
+
+		c.Vault.SetToken(token.Auth.ClientToken)
+
+		return nil
+	}
+
+	// TODO: Do we want to do an auth/token/lookup-self to check if we have a token already from env?
 	return nil
 }
