@@ -2,6 +2,8 @@
 
 Re-make of the legacy app, which relied on legacy Slack Tokens (which are no longer available)
 
+Used as part of https://github.com/lucydavinhart/api.lmhd.me
+
 
 ## Slack
 
