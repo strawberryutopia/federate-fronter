@@ -93,6 +93,8 @@ func (c Client) Update(name, avatar string) error {
 }
 
 func (c Client) VaultAuth() error {
+	// TODO: Check for an env var
+
 	if os.ExpandEnv("${VAULT_APPROLE_ROLE_ID}") != "" {
 
 		if os.ExpandEnv("${VAULT_APPROLE_SECRET_ID}") != "" {
@@ -124,6 +126,8 @@ func (c Client) VaultAuth() error {
 
 		return nil
 	}
+
+	// TODO: Check for a Token File
 
 	// TODO: Do we want to do an auth/token/lookup-self to check if we have a token already from env?
 	return nil
