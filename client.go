@@ -43,21 +43,21 @@ func NewClient() (*Client, error) {
 	return c, nil
 }
 
-func (c Client) UpdateFromFront() error {
+func (c Client) UpdateFromFront() (string, error) {
 	fronter, err := GetFronter()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	// If we have a fronter...
 	if len(fronter.Members) > 0 {
 		log.Infof("Current API Fronter: %v, %v", fronter.Members[0].Name, fronter.Members[0].AvatarURL)
-		return c.Update(fronter.Members[0].Name, fronter.Members[0].AvatarURL)
+		return fronter.Members[0].Name, c.Update(fronter.Members[0].Name, fronter.Members[0].AvatarURL)
 	}
 
 	// Otherwise, front is either empty, or we have a private fronter
 	log.Infof("Current API Fronter empty or private")
-	return c.Update("_empty", "")
+	return "Clear", c.Update("_empty", "")
 }
 
 func (c Client) Update(name, avatar string) error {

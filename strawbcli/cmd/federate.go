@@ -13,6 +13,8 @@ var federateCmd = &cobra.Command{
 	Long:  `Takes current fronter from LMHD API (or flag) and updates various sources`,
 	Run: func(cmd *cobra.Command, args []string) {
 
+		var fronter string
+
 		client, err := federate.NewClient()
 		if err != nil {
 			log.Fatal(err.Error())
@@ -22,12 +24,14 @@ var federateCmd = &cobra.Command{
 		avatarFlag := cmd.PersistentFlags().Lookup("avatar")
 
 		if !nameFlag.Changed || !avatarFlag.Changed {
-			err = client.UpdateFromFront()
+			fronter, err = client.UpdateFromFront()
 			if err != nil {
 				log.Fatal(err.Error())
 			}
 		} else {
 			log.Infof("Custom Fronter: %v, %v", nameFlag.Value, avatarFlag.Value)
+
+			fronter = nameFlag.Value.String()
 
 			err := client.Update(
 				nameFlag.Value.String(),
@@ -37,6 +41,8 @@ var federateCmd = &cobra.Command{
 				log.Fatal(err.Error())
 			}
 		}
+
+		log.Infof("Federated fronter: %v", fronter)
 	},
 }
 
