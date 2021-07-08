@@ -70,11 +70,7 @@ func (s Slack) Update(fronter, avatar string) error {
 	// TODO: Pass back errors through channels
 
 	for _, ws := range s.Workspaces {
-		wg.Add(2)
-
-		// TODO: Get name and avatar from Members
-		// based on Slack workspace and fronter
-		// and fallback to name/avatar if appropriate
+		wg.Add(1)
 
 		wsName := s.Members.GetName(fronter, ws.Name)
 		log.Debugf("%v Name: %v", ws.Name, wsName)
@@ -84,17 +80,14 @@ func (s Slack) Update(fronter, avatar string) error {
 
 		go func(wg *sync.WaitGroup, ws *SlackWorkspace) {
 			defer wg.Done()
-			log.Infof("Updating Name in Slack Workspace %v: %v", ws.Name, wsName)
-			err := ws.UpdateProfile(wsName)
+			log.Infof("Updating Avatar in Slack Workspace %v: %v", ws.Name, wsAvatar)
+			err := ws.UpdateAvatar(wsAvatar)
 			if err != nil {
 				log.Errorf("%v", err)
 			}
-		}(&wg, ws)
 
-		go func(wg *sync.WaitGroup, ws *SlackWorkspace) {
-			defer wg.Done()
-			log.Infof("Updating Avatar in Slack Workspace %v: %v", ws.Name, wsAvatar)
-			err := ws.UpdateAvatar(wsAvatar)
+			log.Infof("Updating Name in Slack Workspace %v: %v", ws.Name, wsName)
+			err = ws.UpdateProfile(wsName)
 			if err != nil {
 				log.Errorf("%v", err)
 			}
