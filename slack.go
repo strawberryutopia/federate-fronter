@@ -67,7 +67,8 @@ func (s Slack) Update(fronter, avatar string) error {
 	// Run each Slack API command concurrently
 	var wg sync.WaitGroup
 
-	// TODO: Pass back errors through channels
+	// Pass back errors through channels
+	errs := make(chan error)
 
 	for _, ws := range s.Workspaces {
 		wg.Add(1)
@@ -85,18 +86,28 @@ func (s Slack) Update(fronter, avatar string) error {
 			if err != nil {
 				log.Errorf("%v", err)
 			}
+			errs <- err
 
 			log.Infof("Updating Name in Slack Workspace %v: %v", ws.Name, wsName)
 			err = ws.UpdateProfile(wsName)
 			if err != nil {
 				log.Errorf("%v", err)
 			}
+			errs <- err
 		}(&wg, ws)
 	}
 
 	log.Debugf("Slack.Update: Waiting for workers to finish")
 	wg.Wait()
 	log.Debugf("Slack.Update: Completed")
+
+	// Check if there are any errors in the channel, then return the first one
+	// TODO: combine these into a multi-error of some kind
+	for err := range errs {
+		if err != nil {
+			return err
+		}
+	}
 
 	return nil
 }
