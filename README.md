@@ -9,6 +9,6 @@ Used as part of https://github.com/lucydavinhart/api.lmhd.me
 
 See app in Slack App Directory:
 
-https://slack.com/apps/A01D40UAUDS-strawbs-personal-ios-shortcuts
+https://hashicorp.slack.com/apps/A01D40UAUDS-strawb-front-federator
 
 To install, go to https://federate.lmhd.me/
